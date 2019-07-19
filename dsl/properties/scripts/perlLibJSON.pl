@@ -41,3 +41,14 @@ sub InvokeCommander {
     # Return the result
     return ($success, $result, $errMsg, $errCode);
 }
+
+#############################################################################
+#
+# Return the agent version.
+# Args:
+#    NONE
+#############################################################################
+sub getVersion
+{
+  return $ec->getVersions()->{responses}->[0]->{serverVersion}->{version};
+}
