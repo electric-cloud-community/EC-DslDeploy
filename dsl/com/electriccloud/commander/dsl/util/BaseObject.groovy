@@ -225,6 +225,8 @@ abstract class BaseObject extends DslDelegatingScript {
     GroovyShell sh = new GroovyShell(this.scriptClassLoader, bindingMap? new Binding(bindingMap) : new Binding(), cc);
     DelegatingScript script = (DelegatingScript)sh.parse(new File(dslFile))
     script.setDelegate(this.delegate);
+    // add bindingMap to DslDelegate to deal with collections removing in 'overwrite' mode
+    script.getDelegate().getBinding().getVariables().put("bindingMap", bindingMap)
     return script.run();
   }
 
