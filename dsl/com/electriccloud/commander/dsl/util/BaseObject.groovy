@@ -226,7 +226,7 @@ abstract class BaseObject extends DslDelegatingScript {
     DelegatingScript script = (DelegatingScript)sh.parse(new File(dslFile))
     script.setDelegate(this.delegate);
     // add bindingMap to DslDelegate to deal with collections removing in 'overwrite' mode
-    script.getDelegate().getBinding().getVariables().put("bindingMap", bindingMap)
+    script.delegate.binding.setVariable("bindingMap", bindingMap)
     return script.run();
   }
 
