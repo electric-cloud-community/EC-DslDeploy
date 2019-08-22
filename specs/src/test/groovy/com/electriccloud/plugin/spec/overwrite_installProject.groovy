@@ -2,6 +2,7 @@ package com.electriccloud.plugin.spec
 
 import spock.lang.*
 
+@Ignore("Temporary, till CEV-23253 will be checked in")
 class overwrite_installProject extends PluginTestHelper {
     static String pName = 'EC-DslDeploy'
     @Shared
@@ -15,19 +16,15 @@ class overwrite_installProject extends PluginTestHelper {
         plugDir = getP("/server/settings/pluginsDirectory")
         dsl """
       deleteProject(projectName: "$projName")
-      deleteResource(resourceName: "res12")
     """
     }
 
     def doCleanupSpec() {
         conditionallyDeleteProject(projName)
-        dsl """
-      deleteResource(resourceName: "res12")
-   """
     }
 
-    // Check sample
-    def "overwrite_installProject test suite upload"() {
+    // overwrite with pipeline
+    def "overwrite_installProject with pipeline"() {
         given: "the overwrite_installProject code"
         when: "Load DSL Code"
         def p = runProcedureDsl("""
@@ -91,4 +88,70 @@ class overwrite_installProject extends PluginTestHelper {
         assert getTaskResult
         assert getTaskResult.contains("NoSuchStage")
     }
+
+    // overwrite with application
+    def "overwrite_installProject with application"() {
+        given: "the overwrite_installProject application code"
+        when: "Load DSL Code"
+        def p = runProcedureDsl("""
+        runProcedure(
+          projectName: "/plugins/$pName/project",
+          procedureName: "installProject",
+          actualParameter: [
+            projDir: "$plugDir/$pName-$pVersion/lib/dslCode/overwrite_application/projects/overwrite_installProject",
+            projName: 'overwrite_installProject'
+          ]
+        )""")
+        then: "job succeeds"
+        assert p.jobId
+        assert getJobProperty("outcome", p.jobId) == "success"
+
+        when: "add content to application"
+        dsl """
+        createApplicationTier(
+          projectName: "$projName",
+          applicationName: "app1",
+          applicationTierName: "newTier"
+        )"""
+
+        // check master component
+        then: "Check the application tier is present"
+        def newTier = dsl """
+        getApplicationTier(
+          projectName: "$projName",
+          applicationName: "app1",
+          applicationTierName: "newTier"
+        )"""
+        assert newTier.applicationTier.applicationTierName == "newTier"
+
+        when: "Load DSL Code with overwrite = 1"
+        def p2 = runProcedureDsl("""
+        runProcedure(
+          projectName: "/plugins/$pName/project",
+          procedureName: "installProject",
+          actualParameter: [
+            projDir: "$plugDir/$pName-$pVersion/lib/dslCode/overwrite_application/projects/overwrite_installProject",
+            projName: 'overwrite_installProject',
+            overwrite: '1'
+          ]
+        )""")
+        then: "job succeeds"
+        assert p2.jobId
+        assert getJobProperty("outcome", p2.jobId) == "success"
+
+        then: "The application tier not exists"
+        println "Checking new application tier is not exists"
+
+        def getTierResult =
+                dslWithXmlResponse("""
+        getApplicationTier(
+          projectName: "$projName",
+          applicationName: "app1",
+          applicationTierName: "newTier"
+        )""", null, [ignoreStatusCode: true])
+
+        assert getTierResult
+        assert getTierResult.contains("NoSuchApplicationTier")
+    }
+
 }
