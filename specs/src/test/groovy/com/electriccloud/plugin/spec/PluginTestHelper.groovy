@@ -141,4 +141,14 @@ class PluginTestHelper extends PluginSpockTestSupport {
     runCommand(publishCommand)
   }
 
+  def deleteProjects = { projectsMap, foreground = true ->
+    projectsMap?.each { key, value ->
+      waitUntil {
+        dsl """
+                        deleteProject projectName: '$value', foreground: '$foreground'
+                    """
+      }
+    }
+  }
+
 }
