@@ -30,11 +30,20 @@
        taskType = 'PROCESS'
      }
 
-     task 'JA3 Deploy', {
-       environmentName = 'SIT'
-       subapplication = 'tomcat_app3'
-       subprocess = 'Deploy'
-       taskProcessType = 'APPLICATION'
-       taskType = 'PROCESS'
-     }
+       task 'Command task', {
+           actualParameter = [
+                   'commandToRun': 'ls',
+           ]
+           advancedMode = '0'
+           allowOutOfOrderRun = '0'
+           alwaysRun = '0'
+           enabled = '1'
+           errorHandling = 'stopOnError'
+           insertRollingDeployManualStep = '0'
+           skippable = '0'
+           useApproverAcl = '0'
+           waitForPlannedStartDate = '0'
+           subprocedure = 'RunCommand'
+           taskType = 'COMMAND'
+       }
    }
