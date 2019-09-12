@@ -16,6 +16,6 @@ task 'task1', {
   useApproverAcl = '0'
   waitForPlannedStartDate = '0'
   approver = [
-    'user1',
+    'admin',
   ]
 }

@@ -63,6 +63,7 @@ class GenerateDslHelper {
 
         //
         def structure = electricFlow.getObjectDslStructure(objectType: objectType, objectName: objectName)
+        println JsonOutput.prettyPrint(JsonOutput.toJson(structure))
 
         if (structure && structure.object) {
             def obj = structure.object
