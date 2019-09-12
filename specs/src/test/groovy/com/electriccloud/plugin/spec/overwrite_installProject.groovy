@@ -101,9 +101,9 @@ class overwrite_installProject extends PluginTestHelper {
             projName: 'overwrite_installProject'
           ]
         )""")
-        then: "job completed with warning"
+        then: "job succeeds"
         assert p.jobId
-        assert getJobProperty("outcome", p.jobId) == "warning"
+        assert getJobProperty("outcome", p.jobId) == "success"
 
         when: "add content to application"
         dsl """
@@ -134,9 +134,9 @@ class overwrite_installProject extends PluginTestHelper {
             overwrite: '1'
           ]
         )""")
-        then: "job completed with warnings"
+        then: "job succeeds"
         assert p2.jobId
-        assert getJobProperty("outcome", p2.jobId) == "warning"
+        assert getJobProperty("outcome", p2.jobId) == "success"
 
         then: "The application tier not exists"
         println "Checking new application tier is not exists"
