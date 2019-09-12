@@ -572,6 +572,7 @@ project 'CEV-19608'
     }
 
 
+    @Ignore
     /**
      * includeChildren='applications, pipelines'
      * result: application and pipelines, and all nested objects in different files. procedure is absent
@@ -602,7 +603,7 @@ project 'CEV-19608'
         assert result.jobId
         def outcome=getJobProperty("outcome", result.jobId)
         assert outcome == "success"
-//
+
         when:
         // retrieve artifact
         retrieveArtifactVersion("dsl:dslCode7", "1.0", dslDir)
