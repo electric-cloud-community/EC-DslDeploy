@@ -3,7 +3,6 @@ package com.electriccloud.plugin.spec
 import spock.lang.Ignore
 import spock.lang.Shared
 
-//@Ignore
 class generateDsl extends PluginTestHelper {
     static String pName='EC-DslDeploy'
     static String jira="CEV-19608"
@@ -629,14 +628,26 @@ pipeline 'pipeline1', {
   }
 }
 """)
-        assert new File(pipeDir, "stages").exists()
+        File stagesDir =  new File(pipeDir, "stages")
+        assert stagesDir.exists()
+
+        //metadata file
+        assertFile(new File(stagesDir, 'metadata.json'), '{"order":["stage1"]}')
+
+        //
         File stageDir = new File(pipeDir, "stages/stage1")
         assert stageDir.exists()
+
+        //
         assertFile(new File(stageDir, "stage.groovy"), """
 stage 'stage1'
 """)
         assert new File(stageDir, "gates").exists()
-        assert new File(stageDir, "tasks").exists()
+        File tasksDir = new File(stageDir, "tasks")
+        assert tasksDir.exists()
+        //metadata file
+        assertFile(new File(tasksDir, 'metadata.json'), '{"order":["cmd"]}')
+        //
         assertFile(new File(stageDir, "tasks/cmd.cmd"), "echo test")
 
         File taskDir = new File (stageDir, "tasks/cmd")

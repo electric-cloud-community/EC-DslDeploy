@@ -1,8 +1,12 @@
 import java.io.File
+import java.util.logging.Logger
 import groovy.json.JsonOutput
 
 class GenerateDslHelper {
 
+    private static final String METADATA_FILE = "metadata.json"
+
+    //
     private def electricFlow
 
     private String objectType
@@ -18,8 +22,6 @@ class GenerateDslHelper {
     private boolean suppressParent
     private final Deque<EntityTypeDetail> childrenStack = new LinkedList<>()
     private  FileTemplateItem difFileTemplateRoot = new FileTemplateItem()
-    private final Map<String, FileTemplateItem> childrenInDifferentFile = new HashMap<>()
-
 
     GenerateDslHelper(def ef,
                       String objType,
@@ -61,7 +63,6 @@ class GenerateDslHelper {
 
         //
         def structure = electricFlow.getObjectDslStructure(objectType: objectType, objectName: objectName)
-        println JsonOutput.prettyPrint(JsonOutput.toJson(structure))
 
         if (structure && structure.object) {
             def obj = structure.object
@@ -88,6 +89,22 @@ class GenerateDslHelper {
         //
         File objTypeDir = new File (parentDir, objectTypeDetail.collectionName)
         objTypeDir.mkdir()
+
+        if (objectTypeDetail.ordered == '1') {
+            //create metadata.json file with order info
+            def data = [:]
+            def order = []
+
+            objectTypeDetail.objects.object.each{
+                order.add(it.name)
+            }
+
+            data << [order: order]
+            def json_str = JsonOutput.toJson(data)
+
+            File metadataFile = new File(objTypeDir, METADATA_FILE)
+            metadataFile << json_str
+        }
 
         //
         objectTypeDetail.objects.object.each{
