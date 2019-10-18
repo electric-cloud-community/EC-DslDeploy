@@ -410,7 +410,7 @@ class overwrite_installProject extends PluginTestHelper {
         assert p.jobId
         assert getJobProperty("outcome", p.jobId) == "warning"
 
-        when: "add content to pipeline"
+        when: "add stage to pipeline"
         dsl """
         createStage(
           projectName: "$projName",
@@ -429,6 +429,34 @@ class overwrite_installProject extends PluginTestHelper {
         )"""
         assert newStage.stage.stageName == "newStage"
 
+        when: "add task to pipeline"
+        def newTask = dsl """
+        createTask(
+          projectName: "$projName",
+          pipelineName: "p12",
+          stageName: "SIT",
+          taskName: "newTask"
+        )"""
+
+        then: "Check the stage is present"
+        assert newTask
+        assert newTask.task.taskName == "newTask"
+
+        when: "add description to task"
+        def oldTask = dsl """
+        modifyTask(
+          projectName: "$projName",
+          pipelineName: "p12",
+          stageName: "SIT",
+          taskName: "Start",
+          description: "newValue"
+        )"""
+
+        then: "Check the task is changed"
+        assert oldTask
+        assert oldTask.task.taskName == "Start"
+        assert oldTask.task.description == "newValue"
+
         when: "Load DSL Code with overwrite = 1"
         def p2 = runProcedureDsl("""
         runProcedure(
@@ -442,12 +470,11 @@ class overwrite_installProject extends PluginTestHelper {
         )""")
         then: "job completed with warning"
         assert p2.jobId
-        assert getJobProperty("outcome", p2.jobId) == "warning"
+        assert getJobProperty("outcome", p2.jobId) == "warning" || getJobProperty("outcome", p2.jobId) == "success"
 
         then: "stage not exists"
-        println "Checking new stage is not exists"
 
-        def getTaskResult =
+        def getStageResult =
                 dslWithXmlResponse("""
         getStage(
           projectName: "$projName",
@@ -455,8 +482,21 @@ class overwrite_installProject extends PluginTestHelper {
           stageName: "newStage"
         )""", null, [ignoreStatusCode: true])
 
+        assert getStageResult
+        assert getStageResult.contains("NoSuchStage")
+
+        then: "task not exists"
+        def getTaskResult =
+                dslWithXmlResponse("""
+        getTask(
+          projectName: "$projName",
+          pipelineName: "p12",
+          stageName: "SIT",
+          taskName: "newTask"
+        )""", null, [ignoreStatusCode: true])
+
         assert getTaskResult
-        assert getTaskResult.contains("NoSuchStage")
+        assert getTaskResult.contains("NoSuchTask")
     }
 
     // overwrite with application
