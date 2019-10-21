@@ -395,6 +395,8 @@ class overwrite_installProject extends PluginTestHelper {
 
     // overwrite with pipeline
     def "overwrite_installProject with pipeline"() {
+        def newStageName = "newStage"
+
         given: "the overwrite_installProject code"
         when: "Load DSL Code"
         def p = runProcedureDsl("""
@@ -415,7 +417,7 @@ class overwrite_installProject extends PluginTestHelper {
         createStage(
           projectName: "$projName",
           pipelineName: "p12",
-          stageName: "newStage"
+          stageName: "$newStageName"
         )"""
 
         // check master component
@@ -425,11 +427,11 @@ class overwrite_installProject extends PluginTestHelper {
         getStage(
           projectName: "$projName",
           pipelineName: "p12",
-          stageName: "newStage"
+          stageName: "$newStageName"
         )"""
-        assert newStage.stage.stageName == "newStage"
+        assert newStage.stage.stageName == newStageName
 
-        when: "add task to pipeline"
+        when: "add task to stage"
         def newTask = dsl """
         createTask(
           projectName: "$projName",
@@ -438,9 +440,56 @@ class overwrite_installProject extends PluginTestHelper {
           taskName: "newTask"
         )"""
 
-        then: "Check the stage is present"
+        then: "Check the task is present"
         assert newTask
         assert newTask.task.taskName == "newTask"
+        when: "add task to stage group"
+        def newTask2 = dsl """
+        createTask(
+          projectName: "$projName",
+          pipelineName: "p12",
+          stageName: "DEV",
+          groupName: "Group 1",
+          taskName: "newTaskInGroup"
+        )"""
+
+        then: "Check the task is present"
+        assert newTask2
+        assert newTask2.task.taskName == "newTaskInGroup"
+        assert newTask2.task.groupName == "Group 1"
+
+        when: "add task to gate"
+        def newRule2 = dsl """
+        createTask(
+          projectName: "$projName",
+          pipelineName: "p12",
+          stageName: "DEV",
+          gateType: "PRE",
+          taskName: "newRule2"
+        )"""
+
+        then: "Check the rule is present"
+        assert newRule2
+        assert newRule2.task.taskName == "newRule2"
+        assert !newRule2.task.gateName.isEmpty()
+
+
+        when: "add task to gate group"
+        def newRule = dsl """
+        createTask(
+          projectName: "$projName",
+          pipelineName: "p12",
+          stageName: "DEV",
+          gateType: "PRE",
+          groupName: "Group 1",
+          taskName: "newRule"
+        )"""
+
+        then: "Check the rule is present"
+        assert newRule
+        assert newRule.task.taskName == "newRule"
+        assert !newRule.task.gateName.isEmpty()
+        assert newRule.task.groupName == "Group 1"
 
         when: "add description to task"
         def oldTask = dsl """
@@ -448,13 +497,13 @@ class overwrite_installProject extends PluginTestHelper {
           projectName: "$projName",
           pipelineName: "p12",
           stageName: "SIT",
-          taskName: "Start",
+          taskName: "JA1 Deploy",
           description: "newValue"
         )"""
 
         then: "Check the task is changed"
         assert oldTask
-        assert oldTask.task.taskName == "Start"
+        assert oldTask.task.taskName == "JA1 Deploy"
         assert oldTask.task.description == "newValue"
 
         when: "Load DSL Code with overwrite = 1"
@@ -472,18 +521,22 @@ class overwrite_installProject extends PluginTestHelper {
         assert p2.jobId
         assert getJobProperty("outcome", p2.jobId) == "warning" || getJobProperty("outcome", p2.jobId) == "success"
 
-        then: "stage not exists"
+        then: "Check stages state"
 
-        def getStageResult =
-                dslWithXmlResponse("""
-        getStage(
-          projectName: "$projName",
-          pipelineName: "p12",
-          stageName: "newStage"
-        )""", null, [ignoreStatusCode: true])
+        def getStagesResult = dsl """
+            getStages(
+              projectName: "$projName",
+              pipelineName: "p12"
+            )"""
 
-        assert getStageResult
-        assert getStageResult.contains("NoSuchStage")
+        assert getStagesResult
+        assert getStagesResult.stage.size() == 3
+
+        def stage1 = getStagesResult.stage.find {it.stageName == newStageName}
+        assert stage1 == null
+        def stage2 = getStagesResult.stage.find {it.stageName == 'DEV'}
+        assert stage2
+        assert stage2.stageName == 'DEV'
 
         then: "task not exists"
         def getTaskResult =
@@ -497,6 +550,62 @@ class overwrite_installProject extends PluginTestHelper {
 
         assert getTaskResult
         assert getTaskResult.contains("NoSuchTask")
+
+        then: "task in group not exists"
+        def getTaskResult2 =
+                dslWithXmlResponse("""
+        getTask(
+          projectName: "$projName",
+          pipelineName: "p12",
+          stageName: "DEV",
+          taskName: "newTaskInGroup"
+        )""", null, [ignoreStatusCode: true])
+
+        assert getTaskResult2
+        assert getTaskResult2.contains("NoSuchTask")
+
+        then: "rule not exists"
+        def getRuleResult2 =
+                dslWithXmlResponse("""
+        getTask(
+          projectName: "$projName",
+          pipelineName: "p12",
+          stageName: "DEV",
+          gateType: "PRE",
+          taskName: "newRule2"
+        )""", null, [ignoreStatusCode: true])
+
+        assert getRuleResult2
+        assert getRuleResult2.contains("NoSuchTask")
+
+
+        then: "rule in group not exists"
+        def getRuleResult =
+                dslWithXmlResponse("""
+        getTask(
+          projectName: "$projName",
+          pipelineName: "p12",
+          stageName: "DEV",
+          gateType: "PRE",
+          taskName: "newRule"
+        )""", null, [ignoreStatusCode: true])
+
+        assert getRuleResult
+        assert getRuleResult.contains("NoSuchTask")
+
+        then: "description is empty"
+
+        def taskJA = dsl """
+        getTask(
+          projectName: "$projName",
+          pipelineName: "p12",
+          stageName: "SIT",
+          taskName: "JA1 Deploy"
+        )"""
+
+        assert taskJA
+        assert taskJA.task.taskName == "JA1 Deploy"
+        assert taskJA.task.description == ""
     }
 
     // overwrite with application
