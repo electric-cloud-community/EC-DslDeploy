@@ -1,13 +1,13 @@
-/*
-  personaCategories.groovy - Loop through the persona categories and invoke each individually
+#  
+#  deployPersonaCategories.pl - Loop through the persona categories and invoke each individually
+#  
+#  Copyright 2020 CloudBees, Inc.
+#
 
-  Copyright 2019 Electric-Cloud Inc.
+use Cwd;
+$[/myProject/scripts/perlHeaderJSON]
 
-  CHANGELOG
-  ----------------------------------------------------------------------------
-  2019-04-02  lrochette Initial Version
-*/
-
+my $dsl = <<'END_MESSAGE';
 import groovy.io.FileType
 import groovy.transform.BaseScript
 import com.electriccloud.commander.dsl.util.BaseObject
@@ -27,3 +27,14 @@ if (dir.exists()) {
 } else {
   setProperty(propertyName:"summary", value:"No persona categories")
 }
+END_MESSAGE
+
+# Create dsl file in job workspace
+use Cwd 'abs_path';
+my $dslFile = abs_path('deployPersonaCategories.$[/myJob/id].commandDsl');
+
+open(FH, '>', $dslFile) or die "ERROR: failed to write dsl file with error: $!";
+print FH $dsl;
+close(FH);
+
+print `ectool --timeout $[/server/@PLUGIN_KEY@/timeout] evalDsl --dslFile "$dslFile" --serverLibraryPath "$[/server/settings/pluginsDirectory]/$[/myProject/projectName]/dsl" $[additionalDslArguments] 2>&1`;

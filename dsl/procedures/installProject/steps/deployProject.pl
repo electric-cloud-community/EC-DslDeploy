@@ -1,12 +1,14 @@
-/*
-  deployProject.groovy - Invoke the project.groovy
-    The looping is done outside to help with error management
-  Copyright 2019 Electric-Cloud Inc.
+#  
+#  deployProject.pl - Invoke the project.groovy
+#    The looping is done outside to help with error management
+#  
+#  Copyright 2020 CloudBees, Inc.
+#
 
-  CHANGELOG
-  ----------------------------------------------------------------------------
-  2019-04-01  lrochette  Convert to loadObjects
-*/
+use Cwd;
+$[/myProject/scripts/perlHeaderJSON]
+
+my $dsl = <<'END_MESSAGE';
 import groovy.transform.BaseScript
 import com.electriccloud.commander.dsl.util.BaseObject
 
@@ -29,4 +31,14 @@ if (counter == 0) {
   setProperty(propertyName: "summary", value: "No project.groovy or project.dsl found")
   setProperty(propertyName: "outcome", value: "warning")
 }
-return ""
+END_MESSAGE
+
+# Create dsl file in job workspace
+use Cwd 'abs_path';
+my $dslFile = abs_path('deployProject.$[/myJob/id].commandDsl');
+
+open(FH, '>', $dslFile) or die "ERROR: failed to write dsl file with error: $!";
+print FH $dsl;
+close(FH);
+
+print `ectool --timeout $[/server/@PLUGIN_KEY@/timeout] evalDsl --dslFile "$dslFile" --serverLibraryPath "$[/server/settings/pluginsDirectory]/$[/myProject/projectName]/dsl" $[additionalDslArguments] 2>&1`;
